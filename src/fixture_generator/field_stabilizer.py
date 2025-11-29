@@ -40,6 +40,7 @@ STABILIZATION_RULES: list[StabilizationInfo] = [
     StabilizationInfo("nicosid", "dummy_nicosid_for_testing"),
     StabilizationInfo("watchTrackId", "dummy_track_id_for_testing"),
     StabilizationInfo("isPeakTime", False),
+    StabilizationInfo("isNicodicArticleExists", False),
     StabilizationInfo(
         "thumbnailUrl", "https://resource.video.nimg.jp/web/img/series/no_thumbnail.png"
     ),
