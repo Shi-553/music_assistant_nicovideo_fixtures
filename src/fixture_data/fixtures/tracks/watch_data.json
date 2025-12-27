@@ -581,7 +581,11 @@
     }
   },
   "waku": {
-    "information": null,
+    "information": {
+      "title": "「ニコニコ動画アワード2025」受賞動画を公開中！",
+      "url": "https://douga-awards.nicovideo.jp/?ref=watchText",
+      "isNewWindow": false
+    },
     "bgImages": [],
     "addContents": null,
     "addVideo": null,
