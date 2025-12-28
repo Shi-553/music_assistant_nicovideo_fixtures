@@ -20,14 +20,24 @@ class StabilizationInfo:
     """Information about how to stabilize a field."""
 
     pattern: str
-    replacement_value: str | int | float | bool
+    # JsonValue allows None/dict/list/etc. which is useful for stabilizing nested structures.
+    replacement_value: JsonValue
     is_partial_match: bool = False
 
-    def matches(self, field_name: str) -> bool:
-        """Check if this stabilization info matches the given field name."""
+    def matches(self, field_name: str, path: str) -> bool:
+        """Check if this stabilization info matches a field.
+
+        The stabilizer traverses nested JSON structures, so rules can match either:
+        - a single field name (e.g. "serverTime")
+        - a dotted path (e.g. "watch_data.waku.information")
+
+        For path-based matching, we compare against the full dotted path.
+        For field-name matching, we compare against the current field name.
+        """
+        target = path if "." in self.pattern else field_name
         if self.is_partial_match:
-            return self.pattern.lower() in field_name.lower()
-        return self.pattern == field_name
+            return self.pattern.lower() in target.lower()
+        return self.pattern == target
 
 
 # Centralized field stabilization rules
@@ -52,6 +62,10 @@ STABILIZATION_RULES: list[StabilizationInfo] = [
     StabilizationInfo("accessRightKey", "dummy.jwt.token.for.testing"),
     StabilizationInfo("editKey", "dummy.jwt.token.for.testing"),
     StabilizationInfo("views", DUMMY_COUNT),
+    # Path / partial-path matches
+    # Niconico frequently changes promotional banner info under waku.information.
+    # This field is not relevant for provider logic and causes noisy fixture churn.
+    StabilizationInfo("waku.information", None, is_partial_match=True),
     # Partial matches
     StabilizationInfo(
         "description", "This is a dummy description for testing purposes.", is_partial_match=True
@@ -79,7 +93,12 @@ class FieldStabilizer:
     def _stabilize_model[T: BaseModel](self, data: T) -> T:
         """Stabilize count values in a single Pydantic model."""
         data_dict = data.model_dump(by_alias=True)
-        stabilized_dict = self._stabilize_value("", data_dict, is_in_count_context=False)
+        stabilized_dict = self._stabilize_value(
+            key="",
+            value=data_dict,
+            is_in_count_context=False,
+            path="",
+        )
         return data.__class__.model_validate(stabilized_dict)
 
     def _stabilize_value(
@@ -87,6 +106,7 @@ class FieldStabilizer:
         key: str,
         value: JsonValue,
         is_in_count_context: bool,
+        path: str,
     ) -> JsonValue:
         """Stabilize a single value recursively.
 
@@ -100,14 +120,16 @@ class FieldStabilizer:
         """
         # 1. Check explicit rules first
         for rule in self.rules:
-            if rule.matches(key):
+            if rule.matches(key, path):
                 return rule.replacement_value
 
         # 2. Handle nested structures
         if isinstance(value, dict):
-            return self._stabilize_dict(value, is_in_count_context)
+            return self._stabilize_dict(value, is_in_count_context, parent_path=path)
         if isinstance(value, list):
-            return [self._stabilize_value(key, item, is_in_count_context) for item in value]
+            return [
+                self._stabilize_value(key, item, is_in_count_context, path=path) for item in value
+            ]
 
         # 3. Handle count values
         if is_in_count_context and isinstance(value, (int, float)):
@@ -115,7 +137,7 @@ class FieldStabilizer:
 
         return value
 
-    def _stabilize_dict(self, data: JsonDict, parent_is_count: bool) -> JsonDict:
+    def _stabilize_dict(self, data: JsonDict, parent_is_count: bool, parent_path: str) -> JsonDict:
         """Stabilize all fields in a dictionary.
 
         Args:
@@ -126,6 +148,11 @@ class FieldStabilizer:
             Stabilized dictionary
         """
         return {
-            k: self._stabilize_value(k, v, parent_is_count or "count" in k.lower())
+            k: self._stabilize_value(
+                k,
+                v,
+                parent_is_count or "count" in k.lower(),
+                path=f"{parent_path}.{k}" if parent_path else k,
+            )
             for k, v in data.items()
         }
