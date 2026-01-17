@@ -62,6 +62,7 @@ STABILIZATION_RULES: list[StabilizationInfo] = [
     StabilizationInfo("accessRightKey", "dummy.jwt.token.for.testing"),
     StabilizationInfo("editKey", "dummy.jwt.token.for.testing"),
     StabilizationInfo("views", DUMMY_COUNT),
+    StabilizationInfo("age", 30),
     # Path / partial-path matches
     # Niconico frequently changes promotional banner info under waku.information.
     # This field is not relevant for provider logic and causes noisy fixture churn.
