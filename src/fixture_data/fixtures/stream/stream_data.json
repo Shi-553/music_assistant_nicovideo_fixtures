@@ -588,7 +588,16 @@
       "addVideo": null,
       "tagRelatedBanner": null,
       "tagRelatedMarquee": null,
-      "pcWatchHeaderCustomBanner": null
+      "pcWatchHeaderCustomBanner": {
+        "imageUrl": "https://wktk.nimg.jp/wktk/8323/banner/4Plb2-4rdw.png",
+        "backgroundType": "none",
+        "backgroundColorCode": null,
+        "backgroundPatternImageUrl": null,
+        "linkUrl": "https://blog.nicovideo.jp/niconews/272370.html",
+        "linkType": "link",
+        "linkOrigin": "https://blog.nicovideo.jp/niconews/272370.html",
+        "isNewWindow": false
+      }
     }
   },
   "selected_audio": {
