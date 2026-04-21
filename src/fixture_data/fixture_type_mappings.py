@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from niconico.objects.nvapi import (
     FollowingMylistsData,
-    HistoryData,
     LikeHistoryData,
     ListSearchData,
     OwnVideosData,
@@ -41,7 +40,6 @@ FIXTURE_TYPE_MAPPINGS: dict[str, type[BaseModel]] = {
     "search/video_search_tags.json": VideoSearchData,
     "search/mylist_search.json": ListSearchData,
     "search/series_search.json": ListSearchData,
-    "history/user_history.json": HistoryData,
     "history/user_likes.json": LikeHistoryData,
     "stream/stream_data.json": StreamFixtureData,
 }
