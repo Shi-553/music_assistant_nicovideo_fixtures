@@ -23,8 +23,9 @@ class StabilizationInfo:
     # JsonValue allows None/dict/list/etc. which is useful for stabilizing nested structures.
     replacement_value: JsonValue
     is_partial_match: bool = False
+    value_prefix: str | None = None
 
-    def matches(self, field_name: str, path: str) -> bool:
+    def matches(self, field_name: str, path: str, value: JsonValue = None) -> bool:
         """Check if this stabilization info matches a field.
 
         The stabilizer traverses nested JSON structures, so rules can match either:
@@ -36,8 +37,14 @@ class StabilizationInfo:
         """
         target = path if "." in self.pattern else field_name
         if self.is_partial_match:
-            return self.pattern.lower() in target.lower()
-        return self.pattern == target
+            name_matches = self.pattern.lower() in target.lower()
+        else:
+            name_matches = self.pattern == target
+        if not name_matches:
+            return False
+        if self.value_prefix is not None:
+            return isinstance(value, str) and value.startswith(self.value_prefix)
+        return True
 
 
 # Centralized field stabilization rules
@@ -45,6 +52,9 @@ STABILIZATION_RULES: list[StabilizationInfo] = [
     # Exact matches
     StabilizationInfo("searchId", "dummy-search-id-for-testing"),
     StabilizationInfo("lastViewedAt", "2025-01-01T00:00:00+09:00"),
+    StabilizationInfo("viewedAt", "2025-01-01T00:00:00+09:00"),
+    StabilizationInfo("itemId", "h#20250101#sm00000000", value_prefix="h#"),
+    StabilizationInfo("nextCursor", None),
     StabilizationInfo("serverTime", "2025-01-01T00:00:00+09:00"),
     StabilizationInfo("registeredAt", "2025-01-01T00:00:00+09:00"),
     StabilizationInfo("nicosid", "dummy_nicosid_for_testing"),
@@ -64,9 +74,11 @@ STABILIZATION_RULES: list[StabilizationInfo] = [
     StabilizationInfo("views", DUMMY_COUNT),
     StabilizationInfo("age", 30),
     # Path / partial-path matches
-    # Niconico frequently changes promotional banner info under waku.information.
-    # This field is not relevant for provider logic and causes noisy fixture churn.
+    # Niconico frequently changes promotional banner info under waku.information and
+    # pcWatchHeaderCustomBanner. These fields are not relevant for provider logic and cause noisy
+    # fixture churn.
     StabilizationInfo("waku.information", None, is_partial_match=True),
+    StabilizationInfo("pcWatchHeaderCustomBanner", None),
     # Partial matches
     StabilizationInfo(
         "description", "This is a dummy description for testing purposes.", is_partial_match=True
@@ -121,7 +133,7 @@ class FieldStabilizer:
         """
         # 1. Check explicit rules first
         for rule in self.rules:
-            if rule.matches(key, path):
+            if rule.matches(key, path, value):
                 return rule.replacement_value
 
         # 2. Handle nested structures
