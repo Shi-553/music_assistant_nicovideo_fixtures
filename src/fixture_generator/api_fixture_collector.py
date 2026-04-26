@@ -211,7 +211,7 @@ class APIFixtureCollector:
             "history",
             "user_history",
             self.client.video.get_history,
-            page_size=self.limit,
+            limit=self.limit,
         )
 
         # Like history

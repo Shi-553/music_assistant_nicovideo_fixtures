@@ -10,7 +10,7 @@ authors = [
 ]
 
 dependencies = [
-    "niconico.py-ma==2.1.0.post1",
+    "niconico.py-ma==2.1.0.post2",
     "aiohttp>=3.10.11",
     "pydantic>=2.10.3",
     "mashumaro>=3.14",
