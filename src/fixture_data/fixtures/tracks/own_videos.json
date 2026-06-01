@@ -1,8 +1,8 @@
 {
   "items": [
     {
-      "isCaptureTweetAllowed": true,
-      "isClipTweetAllowed": true,
+      "isCaptureTweetAllowed": false,
+      "isClipTweetAllowed": false,
       "isCommunityMemberOnly": false,
       "description": "This is a dummy description for testing purposes.",
       "isHidden": false,
