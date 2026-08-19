@@ -73,12 +73,21 @@ STABILIZATION_RULES: list[StabilizationInfo] = [
     StabilizationInfo("editKey", "dummy.jwt.token.for.testing"),
     StabilizationInfo("views", DUMMY_COUNT),
     StabilizationInfo("age", 30),
+    StabilizationInfo("isNicorepoReadable", False),
     # Path / partial-path matches
     # Niconico frequently changes promotional banner info under waku.information and
     # pcWatchHeaderCustomBanner. These fields are not relevant for provider logic and cause noisy
     # fixture churn.
     StabilizationInfo("waku.information", None, is_partial_match=True),
     StabilizationInfo("pcWatchHeaderCustomBanner", None),
+    # Niconico serves the placeholder avatar under changing file names. Pin the placeholder to one
+    # name; icons pointing at a real uploaded avatar are left as they are.
+    StabilizationInfo(
+        "icons.small",
+        "https://secure-dcdn.cdn.nimg.jp/nicoaccount/usericon/defaults/blank_s.jpg",
+        is_partial_match=True,
+        value_prefix="https://secure-dcdn.cdn.nimg.jp/nicoaccount/usericon/defaults/",
+    ),
     # Partial matches
     StabilizationInfo(
         "description", "This is a dummy description for testing purposes.", is_partial_match=True
