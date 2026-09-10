@@ -271,4 +271,4 @@ class APIFixtureCollector:
         await self.collect_history_fixtures()
         await self.collect_stream_fixtures()
 
-        logger.info("=== All fixtures collected successfully! ===")
+        logger.info("=== Fixture collection finished ===")

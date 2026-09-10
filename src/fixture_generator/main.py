@@ -26,7 +26,11 @@ import asyncio
 import logging
 import os
 
-from src.fixture_generator.generation_orchestrator import FixtureGenerationOrchestrator
+from src.fixture_generator.constants import COLLECTION_FAILURE_REPORT_PATH
+from src.fixture_generator.generation_orchestrator import (
+    FixtureCollectionError,
+    FixtureGenerationOrchestrator,
+)
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +44,9 @@ async def main() -> None:
 
     This approach prevents accidental commits of hardcoded credentials
     while maintaining provider isolation (no repository-wide pre-commit hooks).
+
+    Fixtures that could not be collected are written to COLLECTION_FAILURE_REPORT_PATH
+    before the error propagates, so a non-zero exit is accompanied by the failure list.
     """
     session = os.getenv("NICONICO_SESSION")
 
@@ -51,7 +58,13 @@ async def main() -> None:
         )
         raise ValueError(msg)
 
-    await FixtureGenerationOrchestrator().run_all_fixtures(session)
+    try:
+        await FixtureGenerationOrchestrator().run_all_fixtures(session)
+    except FixtureCollectionError as err:
+        COLLECTION_FAILURE_REPORT_PATH.write_text(
+            "\n".join(err.failed_fixtures) + "\n", encoding="utf-8"
+        )
+        raise
 
 
 if __name__ == "__main__":

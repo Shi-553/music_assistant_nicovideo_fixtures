@@ -33,6 +33,15 @@ API_CALL_DELAY_SECONDS = 1.0
 FIXTURE_LIMIT = 1
 
 
+class FixtureCollectionError(Exception):
+    """Raised when one or more fixtures could not be collected."""
+
+    def __init__(self, failed_fixtures: list[str]) -> None:
+        """Initialize with the identifiers of the fixtures that failed."""
+        self.failed_fixtures = failed_fixtures
+        super().__init__("Failed to collect fixtures: " + ", ".join(failed_fixtures))
+
+
 class FixtureGenerationOrchestrator(FixtureProcessorProtocol):
     """Main orchestrator for fixture generation process.
 
@@ -49,6 +58,10 @@ class FixtureGenerationOrchestrator(FixtureProcessorProtocol):
         self.type_mapping_collector = FixtureTypeMappingCollector()
         self.fixture_saver = FixtureSaver()
         self.field_stabilizer = FieldStabilizer()
+
+        # Failures are accumulated instead of raised so that a single broken endpoint
+        # does not hide the state of every other fixture
+        self.failed_fixtures: list[str] = []
 
     @override
     async def process_fixture[T: BaseModel, **P](
@@ -107,13 +120,19 @@ class FixtureGenerationOrchestrator(FixtureProcessorProtocol):
                 logger.error(f"  Message: {error.get('msg', 'Unknown')}")
                 logger.error(f"  Input: {error.get('input', 'Unknown')}")
             logger.error(f"Full validation error: {e}")
+            self.failed_fixtures.append(f"{category}/{name}")
             return None
         except Exception as e:
             logger.error(f"Failed to fetch {category}/{name}: {e}")
+            self.failed_fixtures.append(f"{category}/{name}")
             return None
 
     async def run_all_fixtures(self, test_user_session: str) -> None:
-        """Run all fixtures generation and post-processing."""
+        """Run all fixtures generation and post-processing.
+
+        Raises:
+            FixtureCollectionError: If any fixture could not be collected.
+        """
         try:
             client = NicoNico()
 
@@ -132,8 +151,6 @@ class FixtureGenerationOrchestrator(FixtureProcessorProtocol):
             )
             generator.generate_file(GENERATED_FIXTURE_TYPES_PATH)
 
-            logger.info("=== All fixtures collected successfully! ===")
-
             # Show diff summary
             self.fixture_saver.log_summary()
 
@@ -143,3 +160,8 @@ class FixtureGenerationOrchestrator(FixtureProcessorProtocol):
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
             raise
+
+        if self.failed_fixtures:
+            raise FixtureCollectionError(self.failed_fixtures)
+
+        logger.info("=== All fixtures collected successfully! ===")
