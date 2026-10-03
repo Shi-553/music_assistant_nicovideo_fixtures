@@ -1,6 +1,6 @@
 ---
 name: triage-fixture-issue
-description: Triage an automated "[Automated] Fixture Update" issue in this repository. Investigates the issue, its workflow run and fixture history, classifies the cause (transient failure / fluctuating field / niconico API change / real change / own change), applies the in-repo fix (field_stabilizer rule, niconico.py-ma version bump, collector fix, regeneration), and closes the issue with an English comment. When tests or changes in other repositories (niconico.py fork, music-assistant/server) are needed, posts the investigation results as an issue comment instead of closing. Use when asked to handle, triage, or close fixture-update issues, or when a fixture workflow run failed.
+description: Triage an automated "[Automated] Fixture Update" issue in this repository. Investigates the issue, its workflow run and fixture history, classifies the cause (transient failure / fluctuating field / niconico API change / real change / own change / test run), applies the in-repo fix (field_stabilizer rule, niconico.py-ma version bump, collector fix, regeneration), and closes the issue with an English comment. When tests or changes in other repositories (niconico.py fork, music-assistant/server) are needed, posts the investigation results as an issue comment instead of closing. Use when asked to handle, triage, or close fixture-update issues, or when a fixture workflow run failed.
 ---
 
 # Triage fixture-update issues
@@ -44,6 +44,7 @@ Collection Status
 │   ├─ ValidationError / Field required / 型不一致 /
 │   │  レスポンスの形が変わった / エンドポイント 404 が続く ... C API 変更
 │   └─ 認証エラー（LoginFailureError, 401/403）......... ユーザーに報告（セッション切れの疑い）
+├─ OK・Changed Files 0（差分なしでイシューだけ立った）.... T テスト実行
 └─ OK（差分あり）
     ├─ ログに "No data returned for ..." がある ........ C を疑う（#18 はこれで API 廃止を見逃しかけた）
     ├─ fixture_type_mappings.py だけ / 直前の自分の変更由来 ... E 自分の変更
@@ -111,6 +112,14 @@ Collection Status
   落ちそうな箇所が予想できれば（変わったフィールドを参照するコンバータなど）添える。
 - 5.1 の調査コメントをイシューに追記する。
 - ユーザーが「取り込み済み」と言うまではクローズしない。ユーザーがクローズを指示した場合は、その旨のコメントでクローズする。
+
+### T テスト実行
+
+`update-fixtures.yml` を `force_issue_creation: true` で手動実行すると、差分がなくてもイシューが立つ（#1–#9 もワークフロー整備中のテスト実行だった）。
+
+- **判定条件**: Collection Status が OK で Changed Files が 0。加えて、実行のイベントが `workflow_dispatch` であることを確認する（`gh run view <run_id> --json event`）。
+- **対処**: 修正は不要。テスト実行である旨をコメントしてクローズする（`state_reason`: `not_planned`）。
+- **例外**: イベントが `schedule` なのに差分なしでイシューが立っていたら、ワークフローの異常として open のまま調査コメントを残す。
 
 ### E 自分の変更由来
 
@@ -199,6 +208,7 @@ cd /path/to/music-assistant/server && pytest tests/providers/nicovideo/ -v
 - **B**: `<field> fluctuates (<observed values / history>) and is not relevant to the provider, so it is now stabilized in field_stabilizer.py (<commit>). Fixtures regenerated in <commit>.`
 - **C**: `Niconico changed <what> (<error summary>). Fixed in niconico.py-ma <version> (<fork PR>), pinned in <commit>, fixtures regenerated in <commit>.` Music Assistant にも影響があれば、その PR やイシューも書く。
 - **D**: `Real API change: <what changed>. Accepted; mirrored into the Music Assistant provider tests (<PR if any>).`
+- **T**: `Test run of the fixture workflow (<run link>, workflow_dispatch with force_issue_creation). Collection succeeded with no fixture changes, so no action is needed.`
 - **E**: `Caused by our own change in <commit> (<what>). No action needed.`
 
 同じ原因で複数のイシューがある場合は、各イシューに同じコメントを付けてまとめてクローズする。
@@ -222,7 +232,7 @@ cd /path/to/music-assistant/server && pytest tests/providers/nicovideo/ -v
 - **再生成はローカルで行う。** Actions では `NICONICO_SESSION` が設定されていてニコニコにも届くので、`scripts/run_fixture_generator.sh` を直接実行する。`workflow_dispatch` は使わない。
 - **ユーザーへの報告や質問はすべてイシューへのコメントに置き換える。** 判断がつかないものは、イシューを open のまま残し、何を判断してほしいかをコメントに書く。
 - **分類ごとの動き:**
-  - **A / E**: 5.2 のコメントを付けてクローズする。
+  - **A / E / T**: 5.2 のコメントを付けてクローズする。
   - **B**: stabilizer を直し、4 の静的チェックとローカル再生成で確認する。想定どおりなら、ソースと再生成された fixture を1つのコミットにまとめて `main` に直接 push する。push 後に 5.2 のコメントを付けてクローズする。再生成で想定外の差分が出たら push せず、調査コメントを付けて open のまま残す。
   - **C**:
     - 修正済みの `niconico.py-ma` が PyPI に出ていれば、ピンを上げる（必要ならコレクタも直す）。再生成して収集が成功すれば、B と同じく `main` に push してクローズする。
