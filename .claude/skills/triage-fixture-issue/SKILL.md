@@ -147,7 +147,8 @@ Collection Status
    この場合は `scripts/run_fixture_generator.sh` を実行し、`git diff src/fixture_data` で想定した差分だけが出ることを確認する。
 
    **実行できない場合**は、変更を作業ブランチに push してから、そのブランチでワークフローを実行する:
-   - `actions_run_trigger`（`run_workflow`, `workflow_id: update-fixtures.yml`, `ref: <作業ブランチ>`）
+   - `actions_run_trigger`（`run_workflow`, `workflow_id: update-fixtures.yml`, `ref: <作業ブランチ>`, `inputs: {triage: "false"}`）
+   - `triage: "false"` を必ず付ける。付けないと、検証実行で立ったイシューに対して自動トリアージ（7）が走ってしまう。
    - ワークフローは再生成結果を同じブランチにコミットして push する。差分があればイシューも1件立てる。
    - 実行完了後:
      - ブランチを `git pull` して、生成されたコミットの差分が想定どおりか確認する（stabilizer なら対象フィールドがダミー値に置き換わり、それ以外は変わっていないこと）。
@@ -227,21 +228,21 @@ cd /path/to/music-assistant/server && pytest tests/providers/nicovideo/ -v
 
 ## 7. 自動実行モード（GitHub Actions）
 
-`triage-fixture-issue.yml` から起動されたときの決まりごと。人間は同席していないので、確認を求めずに次のとおり動く。
+`update-fixtures.yml` の triage ジョブ、または `triage-fixture-issue.yml` の手動実行から起動されたときの決まりごと。プロンプトで指定された**対象ブランチ**（通常は `main`）で作業する。人間は同席していないので、確認を求めずに次のとおり動く。
 
 - **再生成はローカルで行う。** Actions では `NICONICO_SESSION` が設定されていてニコニコにも届くので、`scripts/run_fixture_generator.sh` を直接実行する。`workflow_dispatch` は使わない。
 - **ユーザーへの報告や質問はすべてイシューへのコメントに置き換える。** 判断がつかないものは、イシューを open のまま残し、何を判断してほしいかをコメントに書く。
 - **分類ごとの動き:**
   - **A / E / T**: 5.2 のコメントを付けてクローズする。
-  - **B**: stabilizer を直し、4 の静的チェックとローカル再生成で確認する。想定どおりなら、ソースと再生成された fixture を1つのコミットにまとめて `main` に直接 push する。push 後に 5.2 のコメントを付けてクローズする。再生成で想定外の差分が出たら push せず、調査コメントを付けて open のまま残す。
+  - **B**: stabilizer を直し、4 の静的チェックとローカル再生成で確認する。想定どおりなら、ソースと再生成された fixture を1つのコミットにまとめて対象ブランチに直接 push する。push 後に 5.2 のコメントを付けてクローズする。再生成で想定外の差分が出たら push せず、調査コメントを付けて open のまま残す。
   - **C**:
-    - 修正済みの `niconico.py-ma` が PyPI に出ていれば、ピンを上げる（必要ならコレクタも直す）。再生成して収集が成功すれば、B と同じく `main` に push してクローズする。
+    - 修正済みの `niconico.py-ma` が PyPI に出ていれば、ピンを上げる（必要ならコレクタも直す）。再生成して収集が成功すれば、B と同じく対象ブランチに push してクローズする。
     - 修正版がまだなら、5.1 の調査コメントを付けて open のまま残す。
   - **D**: 5.1 の調査コメントを付けて open のまま残す。
   - **認証エラー**: `NICONICO_SESSION` の更新が必要な旨をコメントし、open のまま残す。
-- **push する前に** `git pull --rebase origin main` で最新にそろえる。ワークフロー自身の fixture コミットが先に入っている可能性がある。
+- **push する前に** `git pull --rebase origin <対象ブランチ>` で最新にそろえる。ワークフロー自身の fixture コミットが先に入っている可能性がある。
 - **やってはいけないこと**:
-  - `main` 以外のブランチや他のリポジトリへの push
+  - 対象ブランチ以外のブランチや他のリポジトリへの push
   - force push
   - ワークフローファイル（`.github/workflows/`）の変更
   - `update-fixtures.yml` の再実行や dispatch（A の再実行判定は、次回の定期実行に任せる）

@@ -16,6 +16,14 @@ on:
         options:
           - 'true'
           - 'false'
+      triage:
+        description: 'Run the triage skill on the issue this run opens'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 env:
   PYTHON_VERSION: "3.12"
@@ -28,6 +36,8 @@ jobs:
   update-fixtures:
     name: Update Niconico Fixtures
     runs-on: ubuntu-latest
+    outputs:
+      issue_number: ${{ steps.create_issue.outputs.issue_number }}
 
     steps:
       - name: Checkout repository
@@ -96,6 +106,7 @@ jobs:
           git commit -m "Update fixtures: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           git push
       - name: Create issue for fixture updates
+        id: create_issue
         if: steps.check_changes.outputs.changes == 'true' || steps.generate.outcome == 'failure' || github.event.inputs.force_issue_creation == 'true'
         uses: actions/github-script@v7
         with:
@@ -191,16 +202,34 @@ jobs:
             3. If all tests pass, create a PR in the server repository with the updated fixtures
             `;
 
-            await github.rest.issues.create({
+            const { data: issue } = await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `[Automated] Fixture Update - ${date}${generationFailed ? ' (collection failed)' : ''}`,
               body: issueBody,
               labels: ['automated', 'fixture-update']
             });
+            core.setOutput('issue_number', String(issue.number));
 
       - name: Fail if fixture collection failed
         if: steps.generate.outcome == 'failure'
         run: |
           echo "Fixture collection reported failures; see the Update Niconico fixtures step."
           exit 1
+
+  triage:
+    name: Triage fixture issue
+    needs: update-fixtures
+    # always(): the update job fails on collection errors, and those issues need triage most
+    if: >-
+      always()
+      && needs.update-fixtures.outputs.issue_number != ''
+      && github.event.inputs.triage != 'false'
+    uses: ./.github/workflows/triage-fixture-issue.yml
+    with:
+      issue_number: ${{ needs.update-fixtures.outputs.issue_number }}
+    secrets: inherit
+    permissions:
+      contents: write
+      issues: write
+      actions: read
