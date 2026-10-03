@@ -35,7 +35,7 @@ permissions:
 jobs:
   update-fixtures:
     name: Update Niconico Fixtures
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       issue_number: ${{ steps.create_issue.outputs.issue_number }}
 
