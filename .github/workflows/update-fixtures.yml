@@ -35,21 +35,21 @@ permissions:
 jobs:
   update-fixtures:
     name: Update Niconico Fixtures
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     outputs:
       issue_number: ${{ steps.create_issue.outputs.issue_number }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Cache Python dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/pip
@@ -108,7 +108,7 @@ jobs:
       - name: Create issue for fixture updates
         id: create_issue
         if: steps.check_changes.outputs.changes == 'true' || steps.generate.outcome == 'failure' || github.event.inputs.force_issue_creation == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
