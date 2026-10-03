@@ -74,6 +74,10 @@ STABILIZATION_RULES: list[StabilizationInfo] = [
     StabilizationInfo("views", DUMMY_COUNT),
     StabilizationInfo("age", 30),
     StabilizationInfo("isNicorepoReadable", False),
+    # Account-side sharing flags on own videos; they flip back and forth and the provider does not
+    # use them.
+    StabilizationInfo("isCaptureTweetAllowed", True),
+    StabilizationInfo("isClipTweetAllowed", True),
     # Path / partial-path matches
     # Niconico frequently changes promotional banner info under waku.information and
     # pcWatchHeaderCustomBanner. These fields are not relevant for provider logic and cause noisy
@@ -81,12 +85,13 @@ STABILIZATION_RULES: list[StabilizationInfo] = [
     StabilizationInfo("waku.information", None, is_partial_match=True),
     StabilizationInfo("pcWatchHeaderCustomBanner", None),
     # Niconico serves the placeholder avatar under changing file names. Pin the placeholder to one
-    # name; icons pointing at a real uploaded avatar are left as they are.
+    # name; icons pointing at a real uploaded avatar are left as they are. The prefix must follow
+    # the host the placeholder is served from (moved to img.nicoprofile.nimg.jp in 2026-09).
     StabilizationInfo(
         "icons.small",
-        "https://secure-dcdn.cdn.nimg.jp/nicoaccount/usericon/defaults/blank_s.jpg",
+        "https://img.nicoprofile.nimg.jp/usericon/defaults/blank.jpg",
         is_partial_match=True,
-        value_prefix="https://secure-dcdn.cdn.nimg.jp/nicoaccount/usericon/defaults/",
+        value_prefix="https://img.nicoprofile.nimg.jp/usericon/defaults/",
     ),
     # Partial matches
     StabilizationInfo(
