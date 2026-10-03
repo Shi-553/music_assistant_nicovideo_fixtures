@@ -1,6 +1,6 @@
 ---
 name: triage-fixture-issue
-description: Triage an automated "[Automated] Fixture Update" issue in this repository. Investigates the issue, its workflow run and fixture history, classifies the cause (transient failure / fluctuating field / niconico API change / real change / own change), applies the in-repo fix (field_stabilizer rule, niconico.py-ma version bump, collector fix, regeneration), and closes the issue with an English comment. Use when asked to handle, triage, or close fixture-update issues, or when a fixture workflow run failed.
+description: Triage an automated "[Automated] Fixture Update" issue in this repository. Investigates the issue, its workflow run and fixture history, classifies the cause (transient failure / fluctuating field / niconico API change / real change / own change), applies the in-repo fix (field_stabilizer rule, niconico.py-ma version bump, collector fix, regeneration), and closes the issue with an English comment. When tests or changes in other repositories (niconico.py fork, music-assistant/server) are needed, posts the investigation results as an issue comment instead of closing. Use when asked to handle, triage, or close fixture-update issues, or when a fixture workflow run failed.
 ---
 
 # Triage fixture-update issues
@@ -12,7 +12,7 @@ fixture に差分があるか収集に失敗すると `automated` + `fixture-upd
 **スコープ**
 
 - このリポジトリ内（stabilizer、collector、`pyproject.toml` の依存ピン、fixture の再生成、lint/型チェック）は実行してよい。
-- リポジトリ外（フォーク `Shi-553/niconico.py`、`music-assistant/server`）は **提案のみ**。原因、パッチ案、PR 説明の下書きをユーザーに渡し、自分では push しない。
+- リポジトリ外（フォーク `Shi-553/niconico.py`、`music-assistant/server`）は **提案のみ**。原因、パッチ案、PR 説明の下書きを作り、自分では push しない。調査結果はイシューにコメントとして残す（5.1）。
 - `src/fixture_data/fixtures/**/*.json` と `src/fixture_data/fixture_type_mappings.py` は手で編集しない（CLAUDE.md）。必ず再生成で変える。
 
 ## 1. 材料を集める
@@ -84,14 +84,14 @@ Collection Status
 ### C API 変更
 
 1. ログの `ValidationError` が指すモデル、フィールド、入力値を特定し、どの API 呼び出しで落ちたかを traceback から追う（例: `niconico/video/watch.py`）。
-2. **フォーク側（提案のみ）**: `Shi-553/niconico.py` で直すべきモデルの変更（例: `str` → `str | None`、ラッパー `$watchV4` の剥がし、エンドポイントの v1→v2）について、パッチ案と PR 説明の下書きを作ってユーザーに渡す。
+2. **フォーク側（提案のみ）**: `Shi-553/niconico.py` で直すべきモデルの変更（例: `str` → `str | None`、ラッパー `$watchV4` の剥がし、エンドポイントの v1→v2）について、パッチ案と PR 説明の下書きを作る。
 3. **MA 側への影響（提案のみ）**: 同じ型エラーは本番のプロバイダも壊す（#23 では再生が全滅した）。`music-assistant/server` の nicovideo プロバイダで修正が要るかを書き添える。
 4. **このリポジトリでやること**: フォークの修正がリリースされた後に行う。
    - PyPI で `niconico.py-ma` の最新版を確認する（`curl -s https://pypi.org/pypi/niconico.py-ma/json | python3 -c 'import json,sys; print(json.load(sys.stdin)["info"]["version"])'`）。
    - `pyproject.toml` のピン（`niconico.py-ma==...`）を上げる。
    - API のシグネチャが変わっていれば `src/fixture_generator/api_fixture_collector.py` を合わせる（例: #18 の `page_size=` → `limit=`）。
    - 4 の手順で検証と再生成を行う。
-   - リリースがまだなら、ここで止めて何を待っているかをユーザーに報告する。
+   - リリースがまだなら、ここで止める。5.1 の調査コメントをイシューに追記し、イシューは open のまま残す。
 
 ### D 実変更
 
@@ -103,7 +103,8 @@ Collection Status
   cd /path/to/music-assistant/server && pytest tests/providers/nicovideo/ -v
   ```
 
-  落ちそうな箇所が予想できれば（変わったフィールドを参照するコンバータなど）添えて渡す。
+  落ちそうな箇所が予想できれば（変わったフィールドを参照するコンバータなど）添える。
+- 5.1 の調査コメントをイシューに追記する。
 - ユーザーが「取り込み済み」と言うまではクローズしない。ユーザーがクローズを指示した場合は、その旨のコメントでクローズする。
 
 ### E 自分の変更由来
@@ -137,11 +138,51 @@ Collection Status
    - fixture の再生成コミットはワークフローが作るので、自分のコミットはソース（stabilizer、collector、`pyproject.toml`）だけにする。
    - コミットメッセージに `Closes #N` を入れるかは、クローズコメントを別に書くかで決める。コメントを書く場合は入れない。
 
-## 5. クローズコメント（英語）
+## 5. イシューへのコメント（英語）
+
+どのコメントも本文の末尾に Claude Code のアトリビューションフッターを付ける。
+
+### 5.1 調査コメント（C / D でテストや他リポジトリの変更が必要なとき）
+
+C か D で、server 側のテストやこのリポジトリ外の変更（フォーク、server）が必要な場合は、クローズせずに調査結果を `add_issue_comment` でイシューに追記する。
+後でユーザーや別のセッションがこのコメントだけを読んで作業を続けられるように書く。
+同じ原因の複数イシューには、最も古いイシューに全文を書き、他のイシューにはそのコメントへのリンクだけを書く。
+状況が進んだとき（フォークがリリースされた、server のテスト結果が出たなど）は、新しいコメントで追記する。
+
+~~~~markdown
+## Investigation
+
+**Classification:** C (Niconico API change) | D (real change)
+**Evidence:** <failed run link(s)>, <error excerpt or fixture diff excerpt, with field path and before/after values>
+**Root cause:** <what Niconico changed, and which model/endpoint/converter it hits>
+
+### Required changes outside this repository
+- **Shi-553/niconico.py**: <model/endpoint to change>
+  <details><summary>Proposed patch</summary>
+
+  ```diff
+  ...
+  ```
+  </details>
+- **music-assistant/server** (nicovideo provider): <impact on production, converter to change, or "none expected">
+
+### Tests to run
+```bash
+cp -r src/fixture_data /path/to/music-assistant/server/tests/providers/nicovideo/
+cd /path/to/music-assistant/server && pytest tests/providers/nicovideo/ -v
+```
+<tests/converters expected to fail, if any>
+
+### Remaining in this repository
+- [ ] <e.g. bump niconico.py-ma to the fixed release, adjust api_fixture_collector.py, regenerate>
+~~~~
+
+関係のないセクション（D でフォークの変更が要らない場合など）は省く。
+
+### 5.2 クローズコメント
 
 どの分類でも、クローズ時にはコメントを必ず残す（過去にコメントなしのクローズがあり、後から理由を追えなかった）。
 `issue_write` でクローズするときは `state_reason` を付ける（A/B/C/E は `completed`、検証実行で立った重複イシューは `duplicate`）。
-本文の末尾には Claude Code のアトリビューションフッターを付ける。
 
 テンプレート:
 
@@ -160,7 +201,7 @@ Collection Status
 - 分類
 - 根拠
 - 行ったこと（コミットやワークフロー実行のリンク）
-- リポジトリ外への提案（フォークや server のパッチ案）
+- リポジトリ外への提案（フォークや server のパッチ案）と、投稿した調査コメントのリンク
 - 未完了で待っているもの
 
 調査中に、今回のイシューと別件の stabilizer の穴（効かなくなったルール、まだルールのない揺らぎ）を見つけたら、修正せずに報告に含める。
