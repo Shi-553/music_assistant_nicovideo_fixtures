@@ -1,10 +1,13 @@
 name: Triage Fixture Issue
 
 on:
-  # Runs after every fixture update; the job exits early when that run opened no issue
-  workflow_run:
-    workflows: ["Update Niconico Fixtures"]
-    types: [completed]
+  # Called by update-fixtures.yml with the issue it just opened
+  workflow_call:
+    inputs:
+      issue_number:
+        description: 'Fixture-update issue number to triage'
+        required: true
+        type: string
 
   # Manual re-triage of a specific issue
   workflow_dispatch:
@@ -18,12 +21,12 @@ env:
   PYTHON_VERSION: "3.12"
 
 permissions:
-  contents: write  # Push stabilizer / version-pin fixes to main
+  contents: write  # Push stabilizer / version-pin fixes
   issues: write    # Comment on and close the issue
   actions: read    # Read the fixture workflow's runs and logs
 
 concurrency:
-  group: triage-fixture-issue
+  group: triage-fixture-issue-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -31,48 +34,21 @@ jobs:
     name: Triage fixture issue
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Skip when the fixture workflow ran on a branch other than main (e.g. a verification run)
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_branch == 'main'
 
     steps:
-      - name: Find the issue to triage
-        id: find
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          INPUT_ISSUE: ${{ github.event.inputs.issue_number }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
-        run: |
-          if [ -n "$INPUT_ISSUE" ]; then
-            number="$INPUT_ISSUE"
-          else
-            # The fixture workflow links its run in the issue body
-            number=$(gh issue list --label fixture-update --state open --limit 20 \
-              --json number,body \
-              --jq "map(select(.body | contains(\"/actions/runs/${RUN_ID}\"))) | .[0].number // empty")
-          fi
-          echo "number=${number}" >> "$GITHUB_OUTPUT"
-          if [ -z "$number" ]; then
-            echo "No fixture-update issue to triage for this run."
-          else
-            echo "Triaging issue #${number}"
-          fi
-
       - name: Checkout repository
-        if: steps.find.outputs.number != ''
         uses: actions/checkout@v4
         with:
-          ref: main
+          # The branch head, not the triggering sha: the update job may have just pushed fixtures
+          ref: ${{ github.ref_name }}
           fetch-depth: 0  # The skill reads fixture history with git log -p
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        if: steps.find.outputs.number != ''
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        if: steps.find.outputs.number != ''
         run: |
           python -m venv .venv
           source .venv/bin/activate
@@ -80,7 +56,6 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run triage skill
-        if: steps.find.outputs.number != ''
         uses: anthropics/claude-code-action@v1
         env:
           NICONICO_SESSION: ${{ secrets.NICONICO_SESSION }}
@@ -88,8 +63,9 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
           prompt: |
-            Run the /triage-fixture-issue skill on issue #${{ steps.find.outputs.number }}
+            Run the /triage-fixture-issue skill on issue #${{ inputs.issue_number }}
             in ${{ github.repository }}, following its "7. 自動実行モード" section.
+            The target branch is `${{ github.ref_name }}`: push fixes only to this branch.
             Also handle any other open fixture-update issues that share the same cause.
           claude_args: |
             --model sonnet
