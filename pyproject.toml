@@ -10,7 +10,8 @@ authors = [
 ]
 
 dependencies = [
-    "niconico.py-ma==2.1.0.post3",
+    # Pinned to the watch v4 fix until it is released on PyPI
+    "niconico.py-ma @ git+https://github.com/Shi-553/niconico.py@1213963fffe762bc1ad7c6d4da455075a1d75c2c",
     "aiohttp>=3.10.11",
     "pydantic>=2.10.3",
     "mashumaro>=3.14",
