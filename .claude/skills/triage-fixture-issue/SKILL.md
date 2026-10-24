@@ -1,6 +1,6 @@
 ---
 name: triage-fixture-issue
-description: Triage an automated "[Automated] Fixture Update" issue in this repository. Investigates the issue, its workflow run and fixture history, classifies the cause (transient failure / fluctuating field / niconico API change / real change / own change / test run), applies the in-repo fix (field_stabilizer rule, niconico.py-ma version bump, collector fix, regeneration), and closes the issue with an English comment. When tests or changes in other repositories (niconico.py fork, music-assistant/server) are needed, posts the investigation results as an issue comment instead of closing. Use when asked to handle, triage, or close fixture-update issues, or when a fixture workflow run failed.
+description: Triage an automated "[Automated] Fixture Update" issue in this repository. Investigates the issue, its workflow run and fixture history, classifies the cause (transient failure / Niconico maintenance / fluctuating field / niconico API change / real change / own change / test run), applies the in-repo fix (field_stabilizer rule, niconico.py-ma version bump, collector fix, regeneration), and closes the issue with an English comment. When tests or changes in other repositories (niconico.py fork, music-assistant/server) are needed, posts the investigation results as an issue comment instead of closing. Use when asked to handle, triage, or close fixture-update issues, or when a fixture workflow run failed.
 ---
 
 # Triage fixture-update issues
@@ -34,16 +34,21 @@ fixture に差分があるか収集に失敗すると `automated` + `fixture-upd
    `git log -p --since=<数か月前> -- src/fixture_data/fixtures/<file>.json | grep -n '<field>'`
    同じフィールドが過去に逆方向へ変わっていれば「揺らぎ」の強い証拠になる。
 5. 過去の類似イシューを、フィールド名やエラー文言で `search_issues` から探す。そのクローズコメントが前例になる。
+6. 収集に失敗していれば、実行時刻（UTC）を JST（+9時間）に直し、その時間帯にニコニコのメンテナンスや障害がなかったかを公式情報で確認する（3 の M を参照）。
 
 ## 2. 分類する
 
 ```
 Collection Status
 ├─ FAILED
+│   ├─ 実行時刻がニコニコの公式メンテナンス／障害の時間帯に重なる
+│   │  （ログイン失敗、5xx、メンテナンス画面へのリダイレクトなど）... M メンテナンス
 │   ├─ 同じコミットの次回以降の実行が成功 ............ A 一時的
 │   ├─ ValidationError / Field required / 型不一致 /
 │   │  レスポンスの形が変わった / エンドポイント 404 が続く ... C API 変更
-│   └─ 認証エラー（LoginFailureError, 401/403）......... ユーザーに報告（セッション切れの疑い）
+│   └─ 認証エラー（LoginFailureError, 401/403）
+│       ├─ 同じシークレットで次回以降の実行がログイン成功 ... M か A（まず M を確認）
+│       └─ 続けて失敗 ............................. ユーザーに報告（セッション切れの疑い）
 ├─ OK・Changed Files 0（差分なしでイシューだけ立った）.... T テスト実行
 └─ OK（差分あり）
     ├─ ログに "No data returned for ..." がある ........ C を疑う（#18 はこれで API 廃止を見逃しかけた）
@@ -74,6 +79,25 @@ Collection Status
 
 - 修正はしない。後続の成功した実行の run を確認できたことを根拠にクローズする。
 - 失敗がまだ続いている場合は、再実行で消えるかを見るために `actions_run_trigger`（`rerun_workflow_run`）を1回だけ実行してよい。2回目も失敗したら C として扱う。
+
+### M ニコニコ側のメンテナンス・障害
+
+ニコニコ側のメンテナンスや障害の最中に実行が重なった場合。
+例: #36 は 2026-10-21 19:00 JST から始まった PHP 脆弱性対応の緊急メンテナンス中（10/22 11:03 JST）に実行され、`LoginFailureError` で落ちた。
+
+- **ログイン失敗もメンテナンスで起こる。** `login_with_session` は `https://www.nicovideo.jp/` にアクセスし、リダイレクトされたり `x-niconico-authflag` ヘッダーが `1`/`3` でなかったりすると `LoginFailureError` を出す。
+  - 公式告知で「ニコニコアカウント（ログイン機能）」が対象外でも、ニコニコ動画が止まっていればログインは失敗する。
+  - そのため、認証エラーでもすぐセッション切れとは判断しない。
+- **公式情報の確認先:**
+  - ニコニコインフォ（`https://blog.nicovideo.jp/niconews/`）のメンテナンス・障害告知。追記に、サービスごとの再開時刻が載る。
+  - X の `@nico_nico_talk`（ニコニコ窓口担当）、`@nico_nico_info`
+  - 見つからなければ「ニコニコ メンテナンス <日付>」で Web 検索する。
+- **判定条件:** 次の両方を満たせば M とする。
+  - 失敗した実行の時刻（JST）が、告知されたメンテナンス／障害の時間帯に入っている。
+  - 同じコミット・同じシークレットの次回以降の実行で、その段階を通過している。
+  - 後続の実行がまだなければ open のまま待つ。後続も同じ理由で失敗したら、告知の終了時刻を過ぎているかで、A か認証エラーか C かを判断し直す。
+- **公式情報が見つからない場合:** 後続の実行が成功していれば A として扱う。
+- **対処:** 修正もシークレットの更新も不要。告知のリンクを添えてクローズする。
 
 ### B 揺らぐフィールド → stabilizer
 
@@ -201,11 +225,12 @@ cd /path/to/music-assistant/server && pytest tests/providers/nicovideo/ -v
 ### 5.2 クローズコメント
 
 どの分類でも、クローズ時にはコメントを必ず残す（過去にコメントなしのクローズがあり、後から理由を追えなかった）。
-`issue_write` でクローズするときは `state_reason` を付ける（A/B/C/E は `completed`、検証実行で立った重複イシューは `duplicate`）。
+`issue_write` でクローズするときは `state_reason` を付ける（A/M/B/C/E は `completed`、検証実行で立った重複イシューは `duplicate`）。
 
 テンプレート:
 
 - **A**: `Closing as a transient failure. Only run <run link> failed (<one-line error>); the following runs <links> on the same commit (<sha>) succeeded, so no fixture or source change is needed.`
+- **M**: `Closing as caused by Niconico maintenance. Run <run link> ran at <time> JST (<UTC>), during the official maintenance/outage <announcement link> (<start>–<end/resume time> JST, <reason>), and failed with <one-line error>. The following run <link> succeeded with the same commit and secret, so no fixture, source, or secret change is needed.`
 - **B**: `<field> fluctuates (<observed values / history>) and is not relevant to the provider, so it is now stabilized in field_stabilizer.py (<commit>). Fixtures regenerated in <commit>.`
 - **C**: `Niconico changed <what> (<error summary>). Fixed in niconico.py-ma <version> (<fork PR>), pinned in <commit>, fixtures regenerated in <commit>.` Music Assistant にも影響があれば、その PR やイシューも書く。
 - **D**: `Real API change: <what changed>. Accepted; mirrored into the Music Assistant provider tests (<PR if any>).`
@@ -234,12 +259,17 @@ cd /path/to/music-assistant/server && pytest tests/providers/nicovideo/ -v
 - **ユーザーへの報告や質問はすべてイシューへのコメントに置き換える。** 判断がつかないものは、イシューを open のまま残し、何を判断してほしいかをコメントに書く。
 - **分類ごとの動き:**
   - **A / E / T**: 5.2 のコメントを付けてクローズする。
+  - **M**: Actions では Web の公式情報を確認できない。
+    - 失敗の内容がメンテナンスで説明できる場合（ログイン失敗、5xx など）は、その可能性をコメントに書く。確認先（3 の M）も添え、open のまま残す。
+    - 人間が公式情報で確かめてからクローズする。
   - **B**: stabilizer を直し、4 の静的チェックとローカル再生成で確認する。想定どおりなら、ソースと再生成された fixture を1つのコミットにまとめて対象ブランチに直接 push する。push 後に 5.2 のコメントを付けてクローズする。再生成で想定外の差分が出たら push せず、調査コメントを付けて open のまま残す。
   - **C**:
     - 修正済みの `niconico.py-ma` が PyPI に出ていれば、ピンを上げる（必要ならコレクタも直す）。再生成して収集が成功すれば、B と同じく対象ブランチに push してクローズする。
     - 修正版がまだなら、5.1 の調査コメントを付けて open のまま残す。
   - **D**: 5.1 の調査コメントを付けて open のまま残す。
-  - **認証エラー**: `NICONICO_SESSION` の更新が必要な旨をコメントし、open のまま残す。
+  - **認証エラー**: open のまま残し、次の2つをコメントに書く。
+    - `NICONICO_SESSION` の更新が必要な可能性
+    - ニコニコ側のメンテナンス中である可能性（M）。次回の実行でログインできればメンテナンスだったと分かる。
 - **push する前に** `git pull --rebase origin <対象ブランチ>` で最新にそろえる。ワークフロー自身の fixture コミットが先に入っている可能性がある。
 - **やってはいけないこと**:
   - 対象ブランチ以外のブランチや他のリポジトリへの push
