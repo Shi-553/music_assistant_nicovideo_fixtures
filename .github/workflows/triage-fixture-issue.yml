@@ -70,4 +70,4 @@ jobs:
           claude_args: |
             --model sonnet
             --max-turns 80
-            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,Bash(git:*),Bash(gh:*),Bash(python:*),Bash(.venv/bin/python:*),Bash(.venv/bin/ruff:*),Bash(.venv/bin/mypy:*),Bash(scripts/run_fixture_generator.sh:*),Bash(./scripts/run_fixture_generator.sh:*),Bash(source .venv/bin/activate:*),Bash(. .venv/bin/activate:*),Bash(curl -s https://pypi.org/:*),Bash(curl -sS https://pypi.org/:*),Bash(grep:*),Bash(sed:*),Bash(head:*),Bash(tail:*),Bash(cat:*),Bash(diff:*),Bash(jq:*)"
+            --allowedTools "Read,Edit,Write,Glob,Grep,Skill,WebSearch,WebFetch,Bash(git:*),Bash(gh:*),Bash(python:*),Bash(.venv/bin/python:*),Bash(.venv/bin/ruff:*),Bash(.venv/bin/mypy:*),Bash(scripts/run_fixture_generator.sh:*),Bash(./scripts/run_fixture_generator.sh:*),Bash(source .venv/bin/activate:*),Bash(. .venv/bin/activate:*),Bash(curl -s https://pypi.org/:*),Bash(curl -sS https://pypi.org/:*),Bash(grep:*),Bash(sed:*),Bash(head:*),Bash(tail:*),Bash(cat:*),Bash(diff:*),Bash(jq:*)"
