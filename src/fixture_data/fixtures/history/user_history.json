@@ -6,8 +6,8 @@
       "viewedAt": "2025-01-01T00:00:00+09:00",
       "video": {
         "type": "essential",
-        "id": "so5565756",
-        "title": "初音ミクが歌う「ニコニコメッセの歌」",
+        "id": "sm45285955",
+        "title": "APIテスト用",
         "registeredAt": "2025-01-01T00:00:00+09:00",
         "count": {
           "view": 1,
@@ -16,25 +16,25 @@
           "like": 1
         },
         "thumbnail": {
-          "url": "https://nicovideo.cdn.nimg.jp/thumbnails/5565756/5565756",
-          "middleUrl": null,
-          "largeUrl": null,
-          "listingUrl": "https://img.cdn.nimg.jp/s/nicovideo/thumbnails/5565756/5565756.original/r320x180l?key=fdbd1644725cb83bfece725648c60741e478cedcadbd94d57a08a290b3d252cf",
-          "nHdUrl": "https://img.cdn.nimg.jp/s/nicovideo/thumbnails/5565756/5565756.original/r640x360l?key=6ac360ba7a3101cf1103f7d09f0706e4c3a65ed9f0f18d6af03652d5fd15aa32"
+          "url": "https://nicovideo.cdn.nimg.jp/thumbnails/45285955/45285955.27227006",
+          "middleUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/45285955/45285955.27227006.M",
+          "largeUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/45285955/45285955.27227006.L",
+          "listingUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/45285955/45285955.27227006.M",
+          "nHdUrl": "https://img.cdn.nimg.jp/s/nicovideo/thumbnails/45285955/45285955.27227006.original/r640x360l?key=7098d92a9c12d0b14101a4c3c8297e04c6e7a59eb59ffe9e71c88fa0181b0cb5"
         },
-        "duration": 192,
+        "duration": 2,
         "shortDescription": "This is a dummy description for testing purposes.",
-        "latestCommentSummary": "なう(2021/09/29 23:41:32) お かわいい どうしたの？？ 久しぶりに聴きに来た 12周年 5t wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww...",
-        "isChannelVideo": true,
+        "latestCommentSummary": "",
+        "isChannelVideo": false,
         "isPaymentRequired": false,
         "playbackPosition": 0.0,
         "owner": {
-          "ownerType": "channel",
-          "type": "channel",
+          "ownerType": "user",
+          "type": "user",
           "visibility": "visible",
-          "id": "ch168",
-          "name": "ニコニコメッセチャンネル",
-          "iconUrl": "https://secure-dcdn.cdn.nimg.jp/comch/channel-icon/128x128/ch168.jpg?1268982839"
+          "id": "68461151",
+          "name": "ゲスト",
+          "iconUrl": "https://img.nicoprofile.nimg.jp/usericon/defaults/blank.jpg"
         },
         "requireSensitiveMasking": false,
         "videoLive": null,
