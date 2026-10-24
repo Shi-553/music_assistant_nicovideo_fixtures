@@ -71,6 +71,8 @@ STABILIZATION_RULES: list[StabilizationInfo] = [
     StabilizationInfo("threadKey", "dummy.jwt.token.for.testing"),
     StabilizationInfo("accessRightKey", "dummy.jwt.token.for.testing"),
     StabilizationInfo("editKey", "dummy.jwt.token.for.testing"),
+    # Key for the lazy watch API (watch v4), issued per request
+    StabilizationInfo("authKey", "dummy.jwt.token.for.testing"),
     StabilizationInfo("views", DUMMY_COUNT),
     StabilizationInfo("age", 30),
     StabilizationInfo("isNicorepoReadable", False),

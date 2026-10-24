@@ -15,6 +15,7 @@ from src.fixture_generator.constants import (
 
 if TYPE_CHECKING:
     from niconico import NicoNico
+    from niconico.objects.video.watch import WatchLazyData
 
     from src.fixture_generator.fixture_types import FixtureProcessorProtocol
 
@@ -54,6 +55,13 @@ class APIFixtureCollector:
             "watch_data",
             self.client.video.watch.get_watch_data,
             SAMPLE_VIDEO_ID,
+        )
+
+        # Lazily loaded watch data (owner and series - used with watch data for track details)
+        await self.fixture_processor.process_fixture(
+            "tracks",
+            "watch_lazy_data",
+            self._get_sample_watch_lazy_data,
         )
 
         # User video list (specific user's uploaded videos - converts to Track objects)
@@ -222,6 +230,19 @@ class APIFixtureCollector:
             page_size=self.limit,
         )
 
+    def _get_sample_watch_lazy_data(self) -> WatchLazyData:
+        """Fetch the lazy watch data of the sample video.
+
+        The watch data is fetched again here because the lazy key in the saved watch data fixture
+        is stabilized and cannot be used for the request.
+        """
+        watch = self.client.video.watch
+        watch_lazy_data = watch.get_watch_lazy_data(watch.get_watch_data(SAMPLE_VIDEO_ID))
+        if watch_lazy_data is None:
+            msg = f"No lazy watch data returned for {SAMPLE_VIDEO_ID}"
+            raise RuntimeError(msg)
+        return watch_lazy_data
+
     async def collect_stream_fixtures(
         self,
     ) -> None:
@@ -230,11 +251,15 @@ class APIFixtureCollector:
 
         # Get watch data
         watch_data_result = self.client.video.watch.get_watch_data(SAMPLE_VIDEO_ID)
+        watch_lazy_data_result = self.client.video.watch.get_watch_lazy_data(watch_data_result)
+        if watch_lazy_data_result is None:
+            logger.warning("No lazy watch data found for stream fixture")
+            return
 
         # Select best audio (same logic as server-side _select_best_audio)
         best_audio = None
         best_quality = -1
-        for audio in watch_data_result.media.domand.audios:
+        for audio in watch_data_result.media.contents.audios:
             if audio.is_available and audio.quality_level > best_quality:
                 best_audio = audio
                 best_quality = audio.quality_level
@@ -246,6 +271,7 @@ class APIFixtureCollector:
         # Create StreamFixtureData structure
         stream_fixture = StreamFixtureData(
             watch_data=watch_data_result,
+            watch_lazy_data=watch_lazy_data_result,
             selected_audio=best_audio,
         )
 
