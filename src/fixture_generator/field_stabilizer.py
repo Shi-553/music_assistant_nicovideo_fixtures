@@ -82,10 +82,11 @@ STABILIZATION_RULES: list[StabilizationInfo] = [
     StabilizationInfo("isClipTweetAllowed", True),
     # Path / partial-path matches
     # Niconico frequently changes promotional banner info under waku.information and
-    # pcWatchHeaderCustomBanner. These fields are not relevant for provider logic and cause noisy
-    # fixture churn.
+    # pcWatchHeaderCustomBanner / pcHeaderCustomBanner. These fields are not relevant for provider
+    # logic and cause noisy fixture churn.
     StabilizationInfo("waku.information", None, is_partial_match=True),
     StabilizationInfo("pcWatchHeaderCustomBanner", None),
+    StabilizationInfo("pcHeaderCustomBanner", None),
     # Niconico serves the placeholder avatar under changing file names. Pin the placeholder to one
     # name; icons pointing at a real uploaded avatar are left as they are. The prefix must follow
     # the host the placeholder is served from (moved to img.nicoprofile.nimg.jp in 2026-09).
