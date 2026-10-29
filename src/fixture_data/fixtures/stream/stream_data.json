@@ -573,7 +573,16 @@
       "addVideo": null,
       "tagRelatedBanner": null,
       "tagRelatedMarquee": null,
-      "pcHeaderCustomBanner": null
+      "pcHeaderCustomBanner": {
+        "imageUrl": "https://wktk.nimg.jp/wktk/8323/banner/0m3lYwojkb.png",
+        "backgroundType": "none",
+        "backgroundColorCode": null,
+        "backgroundPatternImageUrl": null,
+        "linkUrl": "https://douga-awards.nicovideo.jp/",
+        "linkType": "link",
+        "linkOrigin": "https://douga-awards.nicovideo.jp/",
+        "isNewWindow": false
+      }
     }
   },
   "selected_audio": {
